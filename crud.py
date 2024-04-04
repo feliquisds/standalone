@@ -4,163 +4,132 @@ import os
 
 
 
-clear = lambda: os.system('cls')
+def clear() -> None:
+    os.system('cls')
 
-def exit(clearScreen: bool) -> None:
-    if clearScreen:
-        clear()
+def exit() -> None:
+    clear()
     print("exiting...")
     time.sleep(1)
     clear()
     sys.exit()
 
-
-
-def WriteToDatabase() -> None:
-    string = input("add something to the database:\n")
-
-    if string == "":
+def get_input(text) -> str:
+    user_input = input(text)
+    if user_input.strip() == "":
         print("you didn't write anything...")
-        return
-    
-    clear()
-    print("checking database...")
-    time.sleep(1)
+        return ""
+    return user_input
 
-    f = open("database.txt", "r")
-    for idx, x in enumerate(f):
-        if string == x.strip():
-            print(f"\nduplicate found!\non line {idx}: {x.strip()}")
 
-            option = input("\nregister anyway? y/n\n")
-            if option.strip() == "y":
-                print("")
-                f.close()
+
+class DatabaseManager:
+
+    def open_database(self):
+        self.database = open("database.txt", "a+t", encoding="utf-8")
+
+    def close_database(self):
+        self.database.close()
+
+
+
+    def internal_get_value(self, value_to_search, indexes_to_skip) -> list[str, int]:
+        clear()
+        print("checking database...")
+        time.sleep(1)
+
+        self.database.seek(0)
+        for index, line in enumerate(self.database):
+            if (value_to_search.strip() in line.strip()) and (index not in indexes_to_skip):
+                print(f"\nentry found!\non line {index + 1}: {line.strip()}")
+                return [line, index]
+        print("no entries found...")
+        return [None, None]
+
+
+
+    def create_value(self) -> None:
+        input_value = get_input("add something to the database:\n> ")
+        if input_value == "":
+            return
+        
+        search_result = self.internal_get_value(input_value, [None])
+        if search_result[1] != None:
+            option = input("\nregister a duplicate anyway? y/n\n> ")
+            if option.strip() != "y":
+                print("\noperation has been canceled" if option.strip() == "n" else "\ninvalid option! finishing registration...")
+                return
+        
+        print("\nregistering to database...")
+        time.sleep(1)
+        self.database.write(f"{input_value}\n")
+        print("all registered!")
+
+
+
+    def search_value(self) -> None:
+        input_value = get_input("search for something in the database:\n> ")
+        if input_value == "":
+            return
+        
+        indexes_to_skip: list[int] = []
+        while True:
+            search_result = self.internal_get_value(input_value, indexes_to_skip)
+            if search_result[1] != None:
+                option = input("\ncontinue searching? y/n\n> ")
+                if option.strip() != "y":
+                    print("\nsearch done!" if option.strip() == "n" else "\ninvalid option! finishing search...")
+                    break
+                else:
+                    indexes_to_skip.append(search_result[1])
+            else:
                 break
+
+
+
+    def delete_value(self) -> None:
+        input_value = get_input("search for something to delete in the database:\n> ")
+        if input_value == "":
+            return
+
+        search_result = self.internal_get_value(input_value, [])
+        if search_result[1] != None:
+            option = input("\ndelete it? y/n\n> ")
+            if option.strip() != "y":
+                print("\noperation has been canceled" if option.strip() == "n" else "\ninvalid option! finishing operation...")
             else:
-                print("\noperation has been canceled" if option == "n" else "\ninvalid option! finishing registration...")
-                f.close()
-                return
-    
-    print("registering to database...")
-    time.sleep(1)
-
-    f = open("database.txt", "a")
-    f.write(f"\n{string}")
-    f.close()
-    print("all registered!")
-
-
-
-def SearchDatabase() -> None:
-    string = input("search for something in the database:\n")
-
-    if string == "":
-        print("you didn't search anything...")
-        return
-    
-    clear()
-    print("searching the database...")
-    time.sleep(1)
-
-    f = open("database.txt", "r")
-    for idx, x in enumerate(f):
-        if string in x:
-            print(f"match found!\non line {idx}: {x.strip()}")
-
-            option = input("\ncontinue searching? y/n\n")
-            if option.strip() == "y":
-                clear()
-                print("searching the database...")
-                time.sleep(1)
-            else:
-                print("\nsearch done!" if option == "n" else "\ninvalid option! finishing search...")
-                f.close()
-                return
-
-    f.close()
-    print("no results found...")
-
-
-
-def DeleteInDatabase() -> None:
-    string = input("search for something to delete in the database:\n")
-
-    if string == "":
-        print("you didn't search anything...")
-        return
-    
-    clear()
-    print("checking database...")
-    time.sleep(1)
-
-    f = open("database.txt", "r")
-    data = f.readlines()
-    f.close()
-
-    f = open("database.txt", "r")
-    for idx, x in enumerate(f):
-        if string == x.strip():
-            print(f"\nmatch found!\non line {idx}: {x.strip()}")
-
-            option = input("\ndelete it? y/n\n")
-            if option.strip() == "y":
                 print("\ndeleting...")
                 time.sleep(1)
-                
-                del data[idx]
-                f.close()
 
-                f = open("database.txt", "w")
-                f.writelines(data)
+                self.database.seek(0)
+                new_database = self.database.readlines()
+                del new_database[search_result[1]]
+
+                self.database.truncate(0)
+                self.database.writelines(new_database)
                 print("successful!")
-                f.close()
-                return
-            else:
-                print("\noperation has been canceled" if option == "n" else "\ninvalid option! finishing operation...")
-                f.close()
-                return
-    
-    f.close()
-    print("no results found...")
 
 
 
-def UpdateDatabase() -> None:
-    string = input("search for something to update in the database:\n")
+    def update_value(self) -> None:
+        input_value = get_input("search for something to update in the database:\n> ")
+        if input_value == "":
+            return
 
-    if string == "":
-        print("you didn't search anything...")
-        return
-    
-    clear()
-    print("checking database...")
-    time.sleep(1)
-
-    f = open("database.txt", "r")
-    data = f.readlines()
-    f.close()
-
-    f = open("database.txt", "r")
-    for idx, x in enumerate(f):
-        if string == x.strip():
-            print(f"\nmatch found!\non line {idx}: {x.strip()}")
-
-            option = input("\nregister something new:\n")
+        search_result = self.internal_get_value(input_value, [])
+        if search_result[1] != None:
+            option = input("\nregister something new:\n> ")
             print("\nupdating...")
             time.sleep(1)
             
-            data[idx] = f"{option}\n"
-            f.close()
-            
-            f = open("database.txt", "w")
-            f.writelines(data)
+            self.database.seek(0)
+            new_database = self.database.readlines()
+            new_database[search_result[1]] = f"{option}\n"
+
+            self.database.truncate(0)
+            self.database.writelines(new_database)
             print("successful!")
-            f.close()
-            return
     
-    f.close()
-    print("no results found...")
 
 
 
@@ -170,8 +139,9 @@ try:
     time.sleep(1)
 
     try:
-        f = open("database.txt", "x")
+        database = open("database.txt", "x")
         print("database created!")
+        database.close()
     except FileExistsError:
         print("database exists!")
     time.sleep(1)
@@ -179,60 +149,37 @@ try:
 
 
 
+    db = DatabaseManager()
+
     while True:
+        db.open_database()
         option = input("""select an operation:
         
-        1- add value
-        2- search value
-        3- update value
-        4- delete value
-        5- exit
-        
-        > """)
+1- add value
+2- search value
+3- update value
+4- delete value
+5- exit
+
+> """)
         print("")
 
+        clear()
         match option.strip():
-            case "1":
-                clear()
-                WriteToDatabase()
-                time.sleep(1)
-                print("\npress enter to go back")
-                input()
-                clear()
-
-            case "2":
-                clear()
-                SearchDatabase()
-                time.sleep(1)
-                print("\npress enter to go back")
-                input()
-                clear()
-
-            case "3":
-                clear()
-                UpdateDatabase()
-                time.sleep(1)
-                print("\npress enter to go back")
-                input()
-                clear()
-
-            case "4":
-                clear()
-                DeleteInDatabase()
-                time.sleep(1)
-                print("\npress enter to go back")
-                input()
-                clear()
-
-            case "5":
-                exit(False)
-
-            case _:
-                print("not a valid option!")
-                time.sleep(1)
-                clear()
+            case "1": db.create_value()
+            case "2": db.search_value()
+            case "3": db.update_value()
+            case "4": db.delete_value()
+            case "5": exit()
+            case _: print("not a valid option!")
+        
+        time.sleep(1)
+        print("\npress enter to go back")
+        input()
+        db.close_database()
+        clear()
 
 
 
 except KeyboardInterrupt:
-    exit(True)
+    exit()
