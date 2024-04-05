@@ -5,7 +5,7 @@ import os
 
 
 def clear() -> None:
-    os.system('cls')
+    print('\x1B[2J\x1B[H', end='')
 
 def exit() -> None:
     clear()
@@ -25,11 +25,36 @@ def get_input(text) -> str:
 
 class DatabaseManager:
 
-    def open_database(self):
-        self.database = open("database.txt", "a+t", encoding="utf-8")
+    def __init__(self) -> None:
+        clear()
+        print("checking for database...\n")
+        time.sleep(1)
 
-    def close_database(self):
+        try:
+            database = open("database.txt", "x")
+            print("database created!")
+            database.close()
+        except FileExistsError:
+            print("database exists!")
+            
+        time.sleep(1)
+        clear()
+        self.open_database()
+
+    def __del__(self) -> None:
+        self.close_database()
+        
+        
+        
+    def open_database(self) -> None:
+        self.database = open("database.txt", "a+t", buffering=1, encoding="utf-8")
+        
+    def close_database(self) -> None:
         self.database.close()
+        
+    def refresh_database(self) -> None:
+        self.database.flush()
+        os.fsync(self.database)
 
 
 
@@ -134,25 +159,8 @@ class DatabaseManager:
 
 
 try:
-    clear()
-    print("checking for database...\n")
-    time.sleep(1)
-
-    try:
-        database = open("database.txt", "x")
-        print("database created!")
-        database.close()
-    except FileExistsError:
-        print("database exists!")
-    time.sleep(1)
-    clear()
-
-
-
     db = DatabaseManager()
-
     while True:
-        db.open_database()
         option = input("""select an operation:
         
 1- add value
@@ -162,7 +170,6 @@ try:
 5- exit
 
 > """)
-        print("")
 
         clear()
         match option.strip():
@@ -173,13 +180,11 @@ try:
             case "5": exit()
             case _: print("not a valid option!")
         
+        db.refresh_database()
         time.sleep(1)
         print("\npress enter to go back")
         input()
-        db.close_database()
         clear()
-
-
 
 except KeyboardInterrupt:
     exit()
