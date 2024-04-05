@@ -2,10 +2,8 @@ import sys
 import time
 import os
 
-
-
 def clear() -> None:
-    print('\x1B[2J\x1B[H', end='')
+    print("\x1B[2J\x1B[H", end="")
 
 def exit() -> None:
     clear()
@@ -24,14 +22,13 @@ def get_input(text) -> str:
 
 
 class DatabaseManager:
-
-    def __init__(self) -> None:
-        clear()
-        print("checking for database...\n")
+    def __init__(self, file) -> None:
+        print("no input given, defaulting to \"database.txt\"" if file.strip() == "" else "", "\nchecking for database...")
         time.sleep(1)
+        self.filename = "database.txt" if file.strip() == "" else file
 
         try:
-            database = open("database.txt", "x")
+            database = open(self.filename, "x")
             print("database created!")
             database.close()
         except FileExistsError:
@@ -40,14 +37,13 @@ class DatabaseManager:
         time.sleep(1)
         clear()
         self.open_database()
+        self.menu()
 
     def __del__(self) -> None:
         self.close_database()
         
-        
-        
     def open_database(self) -> None:
-        self.database = open("database.txt", "a+t", buffering=1, encoding="utf-8")
+        self.database = open(self.filename, "a+t", buffering=1, encoding="utf-8")
         
     def close_database(self) -> None:
         self.database.close()
@@ -55,6 +51,31 @@ class DatabaseManager:
     def refresh_database(self) -> None:
         self.database.flush()
         os.fsync(self.database)
+        
+        
+        
+    def menu(self) -> None:
+        while True:
+            match input("""select an operation:
+            
+1- add value
+2- search value
+3- update value
+4- delete value
+5- exit
+
+> """).strip():
+                case "1": self.create_value()
+                case "2": self.search_value()
+                case "3": self.update_value()
+                case "4": self.delete_value()
+                case "5": return
+                case _: print("\nnot a valid option!")
+            
+            self.refresh_database()
+            time.sleep(1)
+            input("\npress enter to go back")
+            clear()
 
 
 
@@ -74,7 +95,7 @@ class DatabaseManager:
 
 
     def create_value(self) -> None:
-        input_value = get_input("add something to the database:\n> ")
+        input_value = get_input("\nadd something to the database:\n> ")
         if input_value == "":
             return
         
@@ -93,7 +114,7 @@ class DatabaseManager:
 
 
     def search_value(self) -> None:
-        input_value = get_input("search for something in the database:\n> ")
+        input_value = get_input("\nsearch for something in the database:\n> ")
         if input_value == "":
             return
         
@@ -113,7 +134,7 @@ class DatabaseManager:
 
 
     def delete_value(self) -> None:
-        input_value = get_input("search for something to delete in the database:\n> ")
+        input_value = get_input("\nsearch for something to delete in the database:\n> ")
         if input_value == "":
             return
 
@@ -137,7 +158,7 @@ class DatabaseManager:
 
 
     def update_value(self) -> None:
-        input_value = get_input("search for something to update in the database:\n> ")
+        input_value = get_input("\nsearch for something to update in the database:\n> ")
         if input_value == "":
             return
 
@@ -157,34 +178,15 @@ class DatabaseManager:
     
 
 
-
-try:
-    db = DatabaseManager()
-    while True:
-        option = input("""select an operation:
-        
-1- add value
-2- search value
-3- update value
-4- delete value
-5- exit
-
-> """)
-
+while True:
+    try:
         clear()
-        match option.strip():
-            case "1": db.create_value()
-            case "2": db.search_value()
-            case "3": db.update_value()
-            case "4": db.delete_value()
-            case "5": exit()
-            case _: print("not a valid option!")
-        
-        db.refresh_database()
-        time.sleep(1)
-        print("\npress enter to go back")
-        input()
-        clear()
-
-except KeyboardInterrupt:
-    exit()
+        db = DatabaseManager(input("access a database: "))
+        while True:
+            clear()
+            match input("no database open\naccess a database? y/n\n> "):
+                case "y": break
+                case "n": exit()
+                case _: input("invalid option! press enter to choose again")
+    except KeyboardInterrupt:
+        exit()
