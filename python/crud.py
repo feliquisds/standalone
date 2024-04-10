@@ -51,7 +51,9 @@ class DatabaseManager:
 
     def _switch_database(self) -> None:
         self.console.clear()
+        self._close_database()
         self._check_database(input("enter a new database name\n> "))
+        self._open_database()
 
 
         
@@ -222,7 +224,7 @@ while True:
                 console.clear()
                 db.initiate_database(input("enter a database name\n> "))
             case "n":
-                exit()
+                console.exit()
             case _:
                 input("\ninvalid option! press enter to try again")
     except KeyboardInterrupt:

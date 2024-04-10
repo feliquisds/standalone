@@ -5,7 +5,7 @@ import java.util.Scanner;
 
 class ConsoleManager {
     void clear() {
-        System.out.println("\033[H\033[2J"); // doesnt erase console history
+        System.out.print("\033[H\033[2J"); // doesnt erase console history
     }
 
     void sleep() {
@@ -42,7 +42,7 @@ class ConsoleManager {
 
 
 class DatabaseManager {
-
+    // TODO: complete DatabaseManager class
 }
 
 
@@ -50,6 +50,6 @@ class DatabaseManager {
 public class Crud {
 
     public static void main(String[] args) {
-
+        // TODO: complete main()
     }
 }
