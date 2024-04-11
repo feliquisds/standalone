@@ -25,9 +25,11 @@ class ConsoleManager:
 
 class DatabaseManager:
     def __del__(self) -> None:
-        self._close_database()
+        self._update_database("close")
     
-    console = ConsoleManager()
+    console: ConsoleManager = ConsoleManager()
+    filename: str
+    # database: TextIOWrapper (the actual database file)
 
 
 
@@ -49,35 +51,29 @@ class DatabaseManager:
         except FileExistsError:
             print("database exists!")
 
-    def _switch_database(self) -> None:
-        self.console.clear()
-        self._close_database()
-        self._check_database(input("enter a new database name\n> "))
-        self._open_database()
+    def _update_database(self, action: str) -> None:
+        match action:
+            case "open":
+                self.database = open(self.filename, "a+t", buffering=1, encoding="utf-8")
+            case "close":
+                try:
+                    self.database.close()
+                except AttributeError:
+                    pass
+            case "flush":
+                self.database.flush()
+                os.fsync(self.database)
 
-
-        
-    def _open_database(self) -> None:
-        self.database = open(self.filename, "a+t", buffering=1, encoding="utf-8")
-        
-    def _close_database(self) -> None:
-        try:
-            self.database.close()
-        except AttributeError:
-            pass
-        
-    def _refresh_database(self) -> None:
-        self.database.flush()
-        os.fsync(self.database)
-        
-    
-
-    def initiate_database(self, file) -> None: # split from _check_database() so switching databases can be visually smoother
-        self._check_database(file)
+    def setup_manager(self, *from_menu: bool) -> None:
+        console.clear()
+        self._update_database("close")
+        self._check_database(input("enter a database name\n> "))
+        self._update_database("open")
         time.sleep(1)
-        self._open_database()
-        self._open_menu()
-        
+        if not from_menu: self._open_menu()
+
+
+
     def _open_menu(self) -> None:
         while True:
             self.console.clear()
@@ -99,21 +95,22 @@ select an operation:
                 case "2": self._search_value()
                 case "3": self._update_value()
                 case "4": self._delete_value()
-                case "5": self._switch_database()
+                case "5": self.setup_manager(True)
                 case "6":
-                    self._close_database()
+                    self._update_database("close")
                     return
                 case _: print("\nnot a valid option!")
             
-            self._refresh_database()
-            time.sleep(1)
-            input("\npress enter to go back")
+            self._update_database("flush")
+            if choice != "5":
+                time.sleep(1)
+                input("\npress enter to go back")
             self.console.clear()
 
 
 
     def _internal_get_value(self, value_to_search, indexes_to_skip) -> list[str, int]: # type: ignore
-        print("checking database...")
+        print("\nchecking database...")
         time.sleep(1)
 
         self.database.seek(0)
@@ -220,12 +217,8 @@ while True:
     try:
         console.clear()
         match input("no database manager is open, access one? y/n\n> ").lower():
-            case "y":
-                console.clear()
-                db.initiate_database(input("enter a database name\n> "))
-            case "n":
-                console.exit()
-            case _:
-                input("\ninvalid option! press enter to try again")
+            case "y": db.setup_manager()
+            case "n": console.exit()
+            case _: input("\ninvalid option! press enter to try again")
     except KeyboardInterrupt:
         console.exit()
