@@ -1,19 +1,24 @@
 package _java;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Scanner;
+import java.io.*;
+import java.util.*;
 
 
 
 class ConsoleManager
 {
-    public void clear()
+    private ConsoleManager()
+    {
+        throw new IllegalStateException("utility class");
+    }
+
+    static Scanner scan = new Scanner(System.in);
+
+    public static void clear()
     {
         System.out.print("\033[H\033[2J"); // doesnt erase console history
     }
 
-    public void sleep()
+    public static void sleep()
     {
         try
         {
@@ -25,7 +30,7 @@ class ConsoleManager
         }
     }
 
-    public void exitConsole()
+    public static void exit()
     {
         clear();
         System.out.println("exiting...");
@@ -34,47 +39,42 @@ class ConsoleManager
         System.exit(0);
     }
 
-    public String getInput(String message)
+    public static String input(String message)
     {
-        try (Scanner scan = new Scanner(System.in))
-        {
-            System.out.print(message);
-            String userInput = scan.nextLine().strip();
+        System.out.print(message);
+        String userInput = scan.nextLine().strip();
 
-            if (userInput.equals(""))
-            {
-                System.out.println("you didn't write anything...");
-                return "";
-            }
-            return userInput;
+        if (userInput.equals(""))
+        {
+            System.out.println("you didn't write anything...");
+            return "";
         }
+        return userInput;
     }
 }
 
 
-// TODO: complete DatabaseManager class
+
 class DatabaseManager
 {
-    private ConsoleManager console = new ConsoleManager();
     private String filename;
     private File database;
-    private FileWriter databaseWriter;
 
 
 
     private void checkDatabase(String file)
     {
         System.out.println(); // specific line spacing
-        if (file.strip() == "")
+        if (file.strip().equals(""))
         {
-            System.out.println("no input given, defaulting to \"database.txt\"");
+            System.out.println("no input given, defaulting to \"database.txt\"\n");
+            ConsoleManager.sleep();
             filename = "database.txt";
         }
-        else
-            filename = file;
+        else filename = file;
 
-        System.out.println("checking...");
-        console.sleep();
+        System.out.println("checking...\n");
+        ConsoleManager.sleep();
 
         try
         {
@@ -86,42 +86,17 @@ class DatabaseManager
         }
         catch (IOException e)
         {
-            System.out.println("something went wrong...");
-            // TODO: manage exceptions properly
+            System.out.println(String.format("something went wrong...%n'%s'", e));
         }
     }
 
-    private void updateDatabase(String action)
+    public void setupDatabase(Boolean openMenu)
     {
-        try
-        {
-            switch (action)
-            {
-                case "open": databaseWriter = new FileWriter(database);
-                case "close": databaseWriter.close();
-                case "flush": databaseWriter.flush();
-            }
-        }
-        catch (IOException e)
-        {
-            System.out.println("something went wrong...");
-            // TODO: manage exceptions properly
-        }
-    }
-
-    public void setupManager(Boolean... fromMenu)
-    {
-        console.clear();
-        updateDatabase("close");
-        try (Scanner scan = new Scanner(System.in))
-        {
-            System.out.print("enter a database name\n> ");
-            String userInput = scan.nextLine().strip();
-            checkDatabase(userInput);
-        }
-        updateDatabase("open");
-        console.sleep();
-        if (!fromMenu[0])
+        ConsoleManager.clear();
+        System.out.print("enter a database name\n> ");
+        checkDatabase(ConsoleManager.scan.nextLine().strip());
+        ConsoleManager.sleep();
+        if (Boolean.TRUE.equals(openMenu))
             openMenu();
     }
 
@@ -131,11 +106,10 @@ class DatabaseManager
     {
         while (true)
         {
-            console.clear();
-            try (Scanner scan = new Scanner(System.in))
-            {
-                System.out.println(String.format("currently accessing database %s", filename));
-                System.out.print("""
+            ConsoleManager.clear();
+
+            System.out.println(String.format("currently accessing '%s'%n", filename));
+            System.out.println("""
 select an operation:
 
 1- add value
@@ -143,33 +117,108 @@ select an operation:
 3- update value
 4- delete value
 5- switch database
-6- exit
+6- exit""");
+            System.out.print("\n> ");
 
-> """);
-                String choice = scan.nextLine().strip();
-                console.clear();
-                switch (choice)
-                {
-                    case "1": // createValue();
-                    case "2": // searchValue();
-                    case "3": // updateValue();
-                    case "4": // deleteValue();
-                    case "5": setupManager(true);
-                    case "6":
-                        updateDatabase("close");
-                        return;
-                    default:
-                        System.out.println("\nnot a valid option!");
-                }
-                updateDatabase("flush");
-                if (choice != "5")
-                {
-                    console.sleep();
-                    System.out.println("\npress enter to go back");
-                }
-                scan.nextLine();
-                console.clear();
+            String choice = ConsoleManager.scan.nextLine().strip();   
+            ConsoleManager.clear();
+            switch (choice)
+            {
+                case "1":
+                    createEntry();
+                    break;
+                case "2":
+                    // TODO: search function
+                    break;
+                case "3":
+                    // TODO: update function
+                    break;
+                case "4":
+                    // TODO: delete function
+                    break;
+                case "5":
+                    setupDatabase(false);
+                    break;
+                case "6":
+                    return;
+                default:
+                    System.out.println("\nnot a valid option!");
             }
+            if (!choice.equals("5"))
+            {
+                ConsoleManager.sleep();
+                System.out.println("\npress enter to go back");
+                ConsoleManager.scan.nextLine();
+            }
+            ConsoleManager.clear();
+        }
+    }
+
+
+
+    private Map<Integer, String> internalGetInfo(String valueToSearch, Set<Integer> indexesToSkip)
+    {
+        System.out.println("\nchecking database...");
+        ConsoleManager.sleep();
+
+        if (indexesToSkip == null) indexesToSkip = new HashSet<>();
+
+        try (Scanner scan = new Scanner(database))
+        {
+            for (int i = 0; scan.hasNextLine(); i++)
+            {
+                String line = scan.nextLine();
+                if (line.contains(valueToSearch.strip()) && !indexesToSkip.contains(i))
+                {
+                    System.out.println(String.format("match found!%n%non line %s: %s", i, line));
+                    Map<Integer, String> result = new HashMap<>();
+                    result.put(i, line);
+                    return result;
+                }
+            }
+
+            System.out.println("no entries found...");
+        }
+        catch (FileNotFoundException e)
+        {
+            System.out.println("file not found...");
+        }
+        
+        return Collections.emptyMap();
+    }
+
+
+
+    private void createEntry()
+    {
+        String inputValue = ConsoleManager.input("add something to the database:\n> ");
+        if (inputValue.equals("")) return;
+
+        Map<Integer, String> searchResult = internalGetInfo(inputValue, null);
+        if (searchResult.get(1) != null)
+        {
+            System.out.print("\nregister a duplicate anyway? y/n\n> ");
+            String option = ConsoleManager.scan.nextLine().strip().toLowerCase();
+            if (!option.equals("y"))
+            {
+                System.out.println(option.equals("n") ?
+                "\noperation has been canceled" :
+                "\ninvalid option! finishing registration...");
+                return;
+            }
+        }
+
+        System.out.println("\nregistering to database...");
+        ConsoleManager.sleep();
+
+        try (FileWriter writer = new FileWriter(database, true))
+        {
+            writer.write(String.format("%s%n", inputValue));
+            System.out.println("all registered!"); // read like Elizabeth from Persona 3
+        }
+        catch (IOException e)
+        {
+            System.out.println(String.format("failed to register!%n'%s'", e));
         }
     }
 }
@@ -180,6 +229,31 @@ public class Crud
 {
     public static void main(String[] args)
     {
-        // TODO: complete main()
+        DatabaseManager db = new DatabaseManager();
+
+        try
+        {
+            loop: while (true)
+            {
+                ConsoleManager.clear();
+                System.out.print("no database manager is open, access one? y/n\n> ");
+                switch (ConsoleManager.scan.nextLine().strip().toLowerCase())
+                {
+                    case "y":
+                        db.setupDatabase(true);
+                        break;
+                    case "n":
+                        ConsoleManager.exit();
+                        break loop;
+                    default:
+                        System.out.println("\ninvalid option! press enter to try again");
+                        ConsoleManager.scan.nextLine();
+                }
+            }
+        }
+        catch (NoSuchElementException e)
+        {
+            ConsoleManager.exit();
+        }
     }
 }
