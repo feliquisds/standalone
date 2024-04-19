@@ -128,7 +128,7 @@ select an operation:
                     createEntry();
                     break;
                 case "2":
-                    // TODO: search function
+                    searchEntry();
                     break;
                 case "3":
                     // TODO: update function
@@ -156,12 +156,12 @@ select an operation:
 
 
 
-    private Map<Integer, String> internalGetInfo(String valueToSearch, Set<Integer> indexesToSkip)
+    private String[] internalGetInfo(String valueToSearch, ArrayList<Integer> indexesToSkip)
     {
         System.out.println("\nchecking database...");
         ConsoleManager.sleep();
 
-        if (indexesToSkip == null) indexesToSkip = new HashSet<>();
+        if (indexesToSkip == null) indexesToSkip = new ArrayList<>();
 
         try (Scanner scan = new Scanner(database))
         {
@@ -170,10 +170,8 @@ select an operation:
                 String line = scan.nextLine();
                 if (line.contains(valueToSearch.strip()) && !indexesToSkip.contains(i))
                 {
-                    System.out.println(String.format("match found!%n%non line %s: %s", i, line));
-                    Map<Integer, String> result = new HashMap<>();
-                    result.put(i, line);
-                    return result;
+                    System.out.println(String.format("match found!%n%non line %s: %s", i + 1, line));
+                    return new String[]{String.format("%s", i), line};
                 }
             }
 
@@ -184,18 +182,18 @@ select an operation:
             System.out.println("file not found...");
         }
         
-        return Collections.emptyMap();
+        return new String[]{null, null};
     }
 
 
 
     private void createEntry()
     {
-        String inputValue = ConsoleManager.input("add something to the database:\n> ");
+        String inputValue = ConsoleManager.input("add something to the database\n> ");
         if (inputValue.equals("")) return;
 
-        Map<Integer, String> searchResult = internalGetInfo(inputValue, null);
-        if (searchResult.get(1) != null)
+        String[] searchResult = internalGetInfo(inputValue, null);
+        if (searchResult[0] != null)
         {
             System.out.print("\nregister a duplicate anyway? y/n\n> ");
             String option = ConsoleManager.scan.nextLine().strip().toLowerCase();
@@ -219,6 +217,35 @@ select an operation:
         catch (IOException e)
         {
             System.out.println(String.format("failed to register!%n'%s'", e));
+        }
+    }
+
+    private void searchEntry()
+    {
+        String inputValue = ConsoleManager.input("search for something in the database\n> ");
+        if (inputValue.equals("")) return;
+
+        ArrayList<Integer> indexesToSkip = new ArrayList<>();
+        while (true)
+        {
+            String[] searchResult = internalGetInfo(inputValue, indexesToSkip);
+
+            if (searchResult[0] == null) break;
+
+            System.out.print("\ncontinue searching? y/n\n> ");
+            String option = ConsoleManager.scan.nextLine().strip().toLowerCase();
+            if (!option.equals("y"))
+            {
+                System.out.println(option.equals("n") ?
+                "\nsearch done!" :
+                "\ninvalid option! finishing search...");
+                return;
+            }
+            else
+            {
+                ConsoleManager.clear();
+                indexesToSkip.add(Integer.valueOf(searchResult[0]));
+            }
         }
     }
 }
